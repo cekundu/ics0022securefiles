@@ -50,8 +50,8 @@ docker compose version
 
 ## 2. Clone the repository
 ```
-git clone https://github.com/cekundu/securefilesICS0022.git
-cd securefilesICS0022
+git clone https://github.com/cekundu/ics0022securefiles.git
+cd ics0022securefiles
 ```
 
 ## 3. Create your .env file
