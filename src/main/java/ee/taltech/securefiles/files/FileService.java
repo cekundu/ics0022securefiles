@@ -118,19 +118,16 @@ public class FileService {
     public void decryptTo(Session session, String originalName, Path outputPath) throws IOException {
 
         validator.validateAlias(originalName);
-        FileRecord record = findOwnedRecordOrThrow(session, originalName);
-
-        // structural validation only
+    
         validator.validateOutputPath(outputPath);
 
-        // compute safe output path (filename only)
-        Path userDir = getUserDir(session).toAbsolutePath().normalize();
-        Path safeOutput = userDir.resolve(outputPath.getFileName().toString()).normalize();
+        // Prevent attackers from forcing dumps into the user storage directory.
+        ensureNotInsideRoot(outputPath);
 
-        // enforce boundary
-        ensureUnderDirectory(safeOutput, userDir);
+        FileRecord record = findOwnedRecordOrThrow(session, originalName);
 
-        // locate encrypted source file
+        Path userDir = getUserDir(session);
+        
         Path sourcePath = userDir.resolve(record.getStorageFilename()).normalize();
         ensureUnderDirectory(sourcePath, userDir);
 
@@ -157,7 +154,7 @@ public class FileService {
         // decrypt
         byte[] plaintext = cryptoService.decrypt(ciphertext, session.encryptionKey());
 
-        Path parentDir = safeOutput.getParent();
+        Path parentDir = outputPath.toAbsolutePath().normalize().getParent();
         if (parentDir != null) {
             Files.createDirectories(parentDir);
         }
@@ -350,6 +347,16 @@ public class FileService {
         return fileRecordRepository
                 .findByOwnerIdAndOriginalName(session.userId(), alias)
                 .isPresent();
+    }
+
+    private void ensureNotInsideRoot(Path out) {
+
+        Path normOut = out.toAbsolutePath().normalize();
+        Path normRoot = rootDir.toAbsolutePath().normalize();
+
+        if (normOut.startsWith(normRoot)) {
+            throw new SecurityException("Output path cannot be inside securefiles storage.");
+        }
     }
 
     private FileRecord findOwnedRecordOrThrow(Session session, String originalName) {
