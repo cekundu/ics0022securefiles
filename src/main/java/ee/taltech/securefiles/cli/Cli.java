@@ -414,9 +414,8 @@ public class Cli implements CommandLineRunner {
                 return;
             }
             try {
-                System.out.println("Canceled.");
-                return;
-                }
+                target = Path.of(out);
+                validator.validateOutputPath(target);
             } catch (Exception e) {
                 System.out.println("Error: " + e.getMessage());
                 continue;
